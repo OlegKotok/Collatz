@@ -1,13 +1,15 @@
 ﻿/*! \file    Collatz.c
  *  \brief   Simmple and fast solution to find longest Collatz sequence
- *	\author  Oleg Kotok
- *	\date    24.01.2022
+ *  \author  Oleg Kotok
+ *  \date    24.01.2022
+ *  \version v_1
  *  \details Program one. Optimise for code simplicity and low memory usage. Implementation in clear C, without ++.
  *  \example gcc Collatz.c && time ./a.out 13
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 
 /*! 
  *  \brief Get length of Collatz sequence
@@ -46,10 +48,26 @@ int main(int argc, char* argv[])
 {
     if (argc > 1)
     {
-        int n = atoi(argv[1]);
-        if (n > 0) /* argv[1] is integer */
+        int basicSequence = atoi(argv[1]);
+        if (basicSequence > 0) /* argv[1] is integer */
         {
-            printf("Iterations: %u \n", Collatz(n));
+            int maxLength = 0;
+            int startingPositionForMaxSequence = 0;
+            int currentLength = 0;
+
+            while ( basicSequence > 0 )
+            {
+                currentLength = Collatz(basicSequence);
+                if ( currentLength > maxLength )
+                {
+                    maxLength = currentLength;
+                    startingPositionForMaxSequence = basicSequence;
+
+                    printf("Basic number: %u \t Sequence length: %u \n",startingPositionForMaxSequence, maxLength);
+                }
+                --basicSequence;
+            }
+
             return 0;
         }
         else
