@@ -1,9 +1,9 @@
-/*! \file    Collatz.cpp
- *  \brief   Optimized solution to find longest Collatz sequence
+/*! \file    Collatz_MT.cpp
+ *  \brief   OptimMultithreaded solution to find longest Collatz sequence
  *  \author  Oleg Kotok
- *  \date    01.02.2022
+ *  \date    31.01.2022
  *  \version v_2.2
- *  \details Program two. Sacrifices some simplicity and memory for significant reduction in CPU time required.
+ *  \details Program two. Multithreading optimization. Sacrifices some simplicity and memory for significant reduction in CPU time required.
  *  \example make test
  *  \todo    Make cache already-calculated Collatz sequence
  */

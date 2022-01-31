@@ -1,37 +1,61 @@
-﻿/*! \file    Collatz.c
- *  \brief   Simmple and fast solution to find longest Collatz sequence
+﻿/*! \file    Collatz.cpp
+ *  \brief   Simmple and fast solution to find longest Collatz sequence with optimization
  *  \author  Oleg Kotok
- *  \date    24.01.2022
- *  \version v_1
- *  \details Program one. Optimise for code simplicity and low memory usage. Implementation in clear C, without ++.
- *  \example gcc Collatz.c && time ./a.out 13
+ *  \date    31.01.2022
+ *  \version v_2
+ *  \details Program two. Sacrifices some simplicity and memory for significant reduction in CPU time required.
+ *  \example make optimized
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <list>
+#include <map>
 
 /*! 
  *  \brief Get length of Collatz sequence
  *  \param [in] n Start number of Collatz sequence
+ *  \param [in] cachedStorage Link to std::map<unsigned long long, int> which storage previously-calculated values, start position and length of sequence for this position
  *  \return length of Collatz sequence for staring point n
  */
-int Collatz(unsigned long long n)
+int Collatz(unsigned long long startPositin, std::map<unsigned long long, int> &cachedStorage)
 {
-    int i = 0;
-    while (n > 1)
+    int length = 0;
+    auto value = startPositin;
+    std::list<unsigned long long> collatzSequence;
+
+    /** calculate value if not in cashe */
+    while (value > 1 && cachedStorage.count(value) == 0)
     {
-        if (n % 2 == 0) /* n is even */
+        collatzSequence.push_back(value); /** push to temp storage */
+
+        if (value % 2 == 0) /* n is even */
         {
-            n >>= 1; /* n = n / 2 */
+            value >>= 1; /* n = n / 2 */
         }
         else  /* n is odd number */
         {
-            n *= 3; /* n = n * 3 */
-            n++;
+            value *= 3; /* n = n * 3 */
+            ++value;
         }
-        i++;
+        length++;
     }
-    return i;
+
+     /** get length if cashed */
+    if (cachedStorage.count(value) > 0)
+    {
+        length += cachedStorage.find(value)->second; /** get length for stored key-value */
+    }
+
+    /** push newly-generated Collatz sequence (if exist) to cachedStorage */
+    auto currentLength = length;
+    for (auto currentPosition : collatzSequence)
+    {
+        cachedStorage.insert( std::make_pair(currentPosition, currentLength) );
+        currentLength--;    
+    }
+
+    return length;
 }
 
 /*! 
@@ -45,7 +69,7 @@ int Collatz(unsigned long long n)
  */
 int main(int argc, char* argv[])
 {
-    printf("Simple C-style single-thread solution without optimization\n\n");
+    printf("C++ single-thread solution with caching-value optimization\n\n");
     if (argc > 1)
     {
         int basicSequence = atoi(argv[1]);
@@ -54,10 +78,11 @@ int main(int argc, char* argv[])
             int maxLength = 0;
             int startingPositionForMaxSequence = 0;
             int currentLength = 0;
+            std::map<unsigned long long, int> cachedCollatzSequenceStorage;
 
             while ( basicSequence > 0 )
             {
-                currentLength = Collatz(basicSequence);
+                currentLength = Collatz(basicSequence, cachedCollatzSequenceStorage);
                 if ( currentLength > maxLength )
                 {
                     maxLength = currentLength;
