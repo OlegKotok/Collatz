@@ -18,7 +18,7 @@
  */
 int Collatz(unsigned long long n)
 {
-    int i = 1;
+    int i = 0;
     while (n > 1)
     {
         if (n % 2 == 0) /* n is even */

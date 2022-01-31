@@ -1,39 +1,53 @@
-/*! \file    Collatz.c
- *  \brief   Simmple and fast solution to find longest Collatz sequence
+/*! \file    Collatz.cpp
+ *  \brief   Optimized solution to find longest Collatz sequence
  *  \author  Oleg Kotok
- *  \date    24.01.2022
- *  \version v_2
+ *  \date    01.02.2022
+ *  \version v_2.2
  *  \details Program two. Sacrifices some simplicity and memory for significant reduction in CPU time required.
- *  \example gcc Collatz.c && time ./a.out 13
- *  \todo    Implement ThreadPoool
+ *  \example make Collatz2 1899148184679
+ *  \todo    Make cache already-calculated Collatz sequence
  */
 
 #include <iostream>
 #include <stdlib.h>
 #include <thread>
+#include "thread_pool.hpp"
+#include <future>
+#include <queue>
+#include <list>
+#include <map>
+
+constexpr int threadTaskLimit = 100;
+
+//#define DEBUG_INFO
+
 
 /*! 
  *  \brief Get length of Collatz sequence
  *  \param [in] n Start number of Collatz sequence
- *  \return length of Collatz sequence for staring point n
+ *  \return std::pair startPositin and length of Collatz sequence for staring point n
  */
-int Collatz(unsigned long long n)
+auto Collatz(unsigned long long startPositin/*, std::map<unsigned long long, int> &cachedStorage*/)
 {
-    int i = 1;
-    while (n > 1)
+    int length = 0;
+    auto value = startPositin;
+    //std::list collatzSequence;
+    while (value > 1)
     {
-        if (n % 2 == 0) /* n is even */
+        //collatzSequence.push_back(value);
+
+        if (value % 2 == 0) /* n is even */
         {
-            n >>= 1; /* n = n / 2 */
+            value >>= 1; /* n = n / 2 */
         }
         else  /* n is odd number */
         {
-            n *= 3; /* n = n * 3 */
-            n++;
+            value *= 3; /* n = n * 3 */
+            ++value;
         }
-        i++;
+        length++;
     }
-    return i;
+    return std::make_pair (startPositin, length);
 }
 
 /*! 
@@ -49,30 +63,70 @@ int main(int argc, char* argv[])
 {
     std::cout << "C++ language standard: " << __cplusplus << std::endl; /* cpp version */
     std::cout << "Thread count: " << std::thread::hardware_concurrency() << std::endl;
+    std::cout << "Thread pool library version is " << THREAD_POOL_VERSION << std::endl <<std::endl;
 
     if (argc > 1)
     {
-        int basicSequence = atoi(argv[1]);
-        if (basicSequence > 0) /* argv[1] is integer */
+        int startPosition = atoi(argv[1]);
+        if (startPosition > 0) /* argv[1] is integer */
         {
             int maxLength = 0;
             int startingPositionForMaxSequence = 0;
+            int currentStartingPosition = 0;
             int currentLength = 0;
 
-            while ( basicSequence > 0 )
+            thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
+            std::queue <std::future <std::pair <unsigned long long, int> > > futureStorage; /** Contains futures objects from Collatz thread-pool */
+
+            while ( startPosition > 0 )
             {
-                currentLength = Collatz(basicSequence);
-                if ( currentLength > maxLength )
+                futureStorage.push (pool.submit(Collatz, startPosition) );
+                startPosition--;
+
+                if (pool.get_tasks_queued() > threadTaskLimit)
                 {
-                    maxLength = currentLength;
-                    startingPositionForMaxSequence = basicSequence;
+                    /** wating thred-pool finishing. good time to process futureStorage **/
+                    while (!futureStorage.empty())
+                    {
+                        auto p = futureStorage.front().get();
+                        currentStartingPosition = p.first;
+                        currentLength = p.second;
+                        if ( currentLength > maxLength ) {
+                            maxLength = currentLength;
+                            startingPositionForMaxSequence = currentStartingPosition;
 
-                    std::cout << "Basic number: " << startingPositionForMaxSequence << "\t";
-                    std::cout << "Sequence length: " << maxLength <<std::endl;
+                            std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
+                        }
+                        futureStorage.pop();
+                    }
+
+                     /** wating thred-pool finishing if don't finished yet **/
+                    if (pool.get_tasks_queued() > pool.get_thread_count())
+                    {
+                        pool.wait_for_tasks();
+                    }
                 }
-                --basicSequence;
             }
+            pool.wait_for_tasks();
 
+            // ** find max lenth in sequence ** //
+            while (!futureStorage.empty())
+            {
+                auto p = futureStorage.front().get();
+                currentStartingPosition = p.first;
+                currentLength = p.second;
+                if ( currentLength > maxLength ) {
+                    maxLength = currentLength;
+                    startingPositionForMaxSequence = currentStartingPosition;
+
+                    std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
+                }
+                futureStorage.pop();
+            }
+            
+            std::cout << std::endl;
+            std::cout << "Basic number: " << startingPositionForMaxSequence << std::endl;
+            std::cout << "Sequence length: " << maxLength <<std::endl;
             return 0;
         }
         else
