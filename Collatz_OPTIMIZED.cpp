@@ -4,7 +4,7 @@
  *  \date    01.02.2022
  *  \version v_2.2
  *  \details Program two. Sacrifices some simplicity and memory for significant reduction in CPU time required.
- *  \example make Collatz2 1899148184679
+ *  \example make test
  *  \todo    Make cache already-calculated Collatz sequence
  */
 
@@ -16,25 +16,28 @@
 #include <queue>
 #include <list>
 #include <map>
+#include <mutex>
 
 constexpr int threadTaskLimit = 100;
 
-//#define DEBUG_INFO
-
+std::mutex mtx;
 
 /*! 
  *  \brief Get length of Collatz sequence
  *  \param [in] n Start number of Collatz sequence
+ *  \param [in] cachedStorage Link to std::map<unsigned long long, int> which storage previously-calculated values, start position and length of sequence for this position
  *  \return std::pair startPositin and length of Collatz sequence for staring point n
  */
-auto Collatz(unsigned long long startPositin/*, std::map<unsigned long long, int> &cachedStorage*/)
+auto Collatz(unsigned long long startPositin, std::map<unsigned long long, int> &cachedStorage)
 {
     int length = 0;
     auto value = startPositin;
-    //std::list collatzSequence;
-    while (value > 1)
+    std::list<unsigned long long> collatzSequence;
+
+    /** calculate value if not in cashe */
+    while (value > 1 && cachedStorage.count(value) == 0)
     {
-        //collatzSequence.push_back(value);
+        collatzSequence.push_back(value); /** push to temp storage */
 
         if (value % 2 == 0) /* n is even */
         {
@@ -47,6 +50,23 @@ auto Collatz(unsigned long long startPositin/*, std::map<unsigned long long, int
         }
         length++;
     }
+
+     /** get length if cashed */
+    if (cachedStorage.count(value) > 0)
+    {
+        length += cachedStorage.find(value)->second; /** get length for stored key-value */
+    }
+
+    /** push newly-generated Collatz sequence (if exist) to cachedStorage */
+    auto currentLength = length;
+    mtx.lock();
+    for (auto currentPosition : collatzSequence)
+    {
+        cachedStorage.insert( std::make_pair(currentPosition, currentLength) );
+        currentLength--;    
+    }
+    mtx.unlock();
+
     return std::make_pair (startPositin, length);
 }
 
@@ -74,13 +94,14 @@ int main(int argc, char* argv[])
             int startingPositionForMaxSequence = 0;
             int currentStartingPosition = 0;
             int currentLength = 0;
+            std::map<unsigned long long, int> cachedCollatzSequenceStorage;
 
             thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
             std::queue <std::future <std::pair <unsigned long long, int> > > futureStorage; /** Contains futures objects from Collatz thread-pool */
 
             while ( startPosition > 0 )
             {
-                futureStorage.push (pool.submit(Collatz, startPosition) );
+                futureStorage.push (pool.submit(Collatz, startPosition, std::ref(cachedCollatzSequenceStorage) ) );
                 startPosition--;
 
                 if (pool.get_tasks_queued() > threadTaskLimit)
