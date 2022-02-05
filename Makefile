@@ -25,3 +25,6 @@ test: all
 	time ./$(C_OUTPUT) $(TEST_VALUE)
 	time ./$(CPP_OUTPUT) $(TEST_VALUE)
 	time ./$(MULTITHREADED_OUTPUT) $(TEST_VALUE)
+
+docs:
+	doxygen doxygen.conf
