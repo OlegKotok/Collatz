@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <list>
-#include <map>
+#include <unordered_map>
 
 /*! 
  *  \brief Get length of Collatz sequence
@@ -18,14 +18,14 @@
  *  \param [in] cachedStorage Link to std::map<unsigned long long, int> which storage previously-calculated values, start position and length of sequence for this position
  *  \return length of Collatz sequence for staring point n
  */
-int Collatz(unsigned long long startPositin, std::map<unsigned long long, int> &cachedStorage)
+int Collatz(unsigned long long startPositin, std::unordered_map<unsigned long long, int> &cachedStorage)
 {
     int length = 0;
     auto value = startPositin;
     std::list<unsigned long long> collatzSequence;
 
     /** calculate value if not in cashe */
-    while (value > 1 && cachedStorage.count(value) == 0)
+    while (value > 1 && !cachedStorage.contains(value))
     {
         collatzSequence.push_back(value); /** push to temp storage */
 
@@ -42,7 +42,7 @@ int Collatz(unsigned long long startPositin, std::map<unsigned long long, int> &
     }
 
      /** get length if cashed */
-    if (cachedStorage.count(value) > 0)
+    if (cachedStorage.contains(value))
     {
         length += cachedStorage.find(value)->second; /** get length for stored key-value */
     }
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
     int maxLength = 0;
     int startingPositionForMaxSequence = 0;
     int currentLength = 0;
-    std::map<unsigned long long, int> cachedCollatzSequenceStorage;
+    std::unordered_map<unsigned long long, int> cachedCollatzSequenceStorage;
 
     while ( basicSequence > 0 )
     {

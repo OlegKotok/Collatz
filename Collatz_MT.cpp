@@ -15,7 +15,7 @@
 #include <future>
 #include <queue>
 #include <list>
-#include <map>
+#include <unordered_map>
 #include <mutex>
 
 constexpr int threadTaskLimit = 100;
@@ -28,14 +28,14 @@ std::mutex mtx;
  *  \param [in] cachedStorage Link to std::map<unsigned long long, int> which storage previously-calculated values, start position and length of sequence for this position
  *  \return std::pair startPositin and length of Collatz sequence for staring point n
  */
-auto Collatz(unsigned long long startPositin, std::map<unsigned long long, int> &cachedStorage)
+auto Collatz(unsigned long long startPositin, std::unordered_map<unsigned long long, int> &cachedStorage)
 {
     int length = 0;
     auto value = startPositin;
     std::list<unsigned long long> collatzSequence;
 
     /** calculate value if not in cashe */
-    while (value > 1 && cachedStorage.count(value) == 0)
+    while (value > 1 && !cachedStorage.contains(value))
     {
         collatzSequence.push_back(value); /** push to temp storage */
 
@@ -51,15 +51,15 @@ auto Collatz(unsigned long long startPositin, std::map<unsigned long long, int> 
         length++;
     }
 
-     /** get length if cashed */
-    if (cachedStorage.count(value) > 0)
+    mtx.lock();
+    /** get length if cashed */
+    if (cachedStorage.contains(value))
     {
         length += cachedStorage.find(value)->second; /** get length for stored key-value */
     }
 
     /** push newly-generated Collatz sequence (if exist) to cachedStorage */
     auto currentLength = length;
-    mtx.lock();
     for (auto currentPosition : collatzSequence)
     {
         cachedStorage.insert( std::make_pair(currentPosition, currentLength) );
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
     int startingPositionForMaxSequence = 0;
     int currentStartingPosition = 0;
     int currentLength = 0;
-    std::map<unsigned long long, int> cachedCollatzSequenceStorage;
+    std::unordered_map<unsigned long long, int> cachedCollatzSequenceStorage;
 
     thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
     std::queue <std::future <std::pair <unsigned long long, int> > > futureStorage; /** Contains futures objects from Collatz thread-pool */
