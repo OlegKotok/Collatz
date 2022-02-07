@@ -46,39 +46,36 @@ int Collatz(unsigned long long n)
 int main(int argc, char* argv[])
 {
     printf("Simple C-style single-thread solution without optimization\n\n");
-    if (argc > 1)
+    
+    if (argc == 1)
     {
-        int basicSequence = atoi(argv[1]);
-        if (basicSequence > 0) /* argv[1] is integer */
-        {
-            int maxLength = 0;
-            int startingPositionForMaxSequence = 0;
-            int currentLength = 0;
-
-            while ( basicSequence > 0 )
-            {
-                currentLength = Collatz(basicSequence);
-                if ( currentLength > maxLength )
-                {
-                    maxLength = currentLength;
-                    startingPositionForMaxSequence = basicSequence;
-
-                    printf("Basic number: %u \t Sequence length: %u \n",startingPositionForMaxSequence, maxLength);
-                }
-                --basicSequence;
-            }
-
-            return 0;
-        }
-        else
-        {
-             printf("%s is Invalid argument. Syntax: %s n - starting value of Collatz sequence \n", argv[1], argv[0]);
-            return -1;
-        }
+        printf("Syntax: %s n - starting value of Collatz sequence \n", argv[0]);
+        return -2;
     }
-    else
+   
+    int basicSequence = atoi(argv[1]);
+    if (basicSequence == 0) /* argv[1] is not integer */
     {
-         printf("Syntax: %s n - starting value of Collatz sequence \n", argv[0]);
-         return -2;
+        printf("%s is Invalid argument. Syntax: %s n - starting value of Collatz sequence \n", argv[1], argv[0]);
+        return -1;
     }
+
+    int maxLength = 0;
+    int startingPositionForMaxSequence = 0;
+    int currentLength = 0;
+
+    while ( basicSequence > 0 )
+    {
+        currentLength = Collatz(basicSequence);
+        if ( currentLength > maxLength )
+        {
+            maxLength = currentLength;
+            startingPositionForMaxSequence = basicSequence;
+
+            printf("Basic number: %u \t Sequence length: %u \n",startingPositionForMaxSequence, maxLength);
+        }
+        --basicSequence;
+    }
+
+    return 0;
 }

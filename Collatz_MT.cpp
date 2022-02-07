@@ -85,52 +85,37 @@ int main(int argc, char* argv[])
     std::cout << "Thread count: " << std::thread::hardware_concurrency() << std::endl;
     std::cout << "Thread pool library version is " << THREAD_POOL_VERSION << std::endl <<std::endl;
 
-    if (argc > 1)
+    if (argc == 1)
     {
-        int startPosition = atoi(argv[1]);
-        if (startPosition > 0) /* argv[1] is integer */
+        std::cout << "Syntax: " << argv[0] << " <n> - starting value of Collatz sequence" <<std::endl;
+        return -2;
+    }
+   
+    int startPosition = atoi(argv[1]);
+    if (startPosition == 0) /* argv[1] is not integer */
+    {
+        std::cout << argv[1] << " is Invalid argument." << std::endl;
+        std::cout << "Syntax: " << argv[0] << " <n> - starting value of Collatz sequence" <<std::endl;
+        return -1;
+    }
+
+    int maxLength = 0;
+    int startingPositionForMaxSequence = 0;
+    int currentStartingPosition = 0;
+    int currentLength = 0;
+    std::map<unsigned long long, int> cachedCollatzSequenceStorage;
+
+    thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
+    std::queue <std::future <std::pair <unsigned long long, int> > > futureStorage; /** Contains futures objects from Collatz thread-pool */
+
+    while ( startPosition > 0 )
+    {
+        futureStorage.push (pool.submit(Collatz, startPosition, std::ref(cachedCollatzSequenceStorage) ) );
+        startPosition--;
+
+        if (pool.get_tasks_queued() > threadTaskLimit)
         {
-            int maxLength = 0;
-            int startingPositionForMaxSequence = 0;
-            int currentStartingPosition = 0;
-            int currentLength = 0;
-            std::map<unsigned long long, int> cachedCollatzSequenceStorage;
-
-            thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
-            std::queue <std::future <std::pair <unsigned long long, int> > > futureStorage; /** Contains futures objects from Collatz thread-pool */
-
-            while ( startPosition > 0 )
-            {
-                futureStorage.push (pool.submit(Collatz, startPosition, std::ref(cachedCollatzSequenceStorage) ) );
-                startPosition--;
-
-                if (pool.get_tasks_queued() > threadTaskLimit)
-                {
-                    /** wating thred-pool finishing. good time to process futureStorage **/
-                    while (!futureStorage.empty())
-                    {
-                        auto p = futureStorage.front().get();
-                        currentStartingPosition = p.first;
-                        currentLength = p.second;
-                        if ( currentLength > maxLength ) {
-                            maxLength = currentLength;
-                            startingPositionForMaxSequence = currentStartingPosition;
-
-                            std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
-                        }
-                        futureStorage.pop();
-                    }
-
-                     /** wating thred-pool finishing if don't finished yet **/
-                    if (pool.get_tasks_queued() > pool.get_thread_count())
-                    {
-                        pool.wait_for_tasks();
-                    }
-                }
-            }
-            pool.wait_for_tasks();
-
-            // ** find max lenth in sequence ** //
+            /** wating thred-pool finishing. good time to process futureStorage **/
             while (!futureStorage.empty())
             {
                 auto p = futureStorage.front().get();
@@ -144,22 +129,34 @@ int main(int argc, char* argv[])
                 }
                 futureStorage.pop();
             }
-            
-            std::cout << std::endl;
-            std::cout << "Basic number: " << startingPositionForMaxSequence << std::endl;
-            std::cout << "Sequence length: " << maxLength <<std::endl;
-            return 0;
-        }
-        else
-        {
-            std::cout << argv[1] << " is Invalid argument." << std::endl;
-            std::cout << "Syntax: " << argv[0] << " n - starting value of Collatz sequence" <<std::endl;
-            return -1;
+
+            /** wating thred-pool finishing if don't finished yet **/
+            if (pool.get_tasks_queued() > pool.get_thread_count())
+            {
+                pool.wait_for_tasks();
+            }
         }
     }
-    else
+    pool.wait_for_tasks();
+
+    // ** find max lenth in sequence ** //
+    while (!futureStorage.empty())
     {
-         std::cout << "Syntax: " << argv[0] << " n - starting value of Collatz sequence" <<std::endl;
-         return -2;
+        auto p = futureStorage.front().get();
+        currentStartingPosition = p.first;
+        currentLength = p.second;
+        if ( currentLength > maxLength ) {
+            maxLength = currentLength;
+            startingPositionForMaxSequence = currentStartingPosition;
+
+            std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
+        }
+        futureStorage.pop();
     }
+            
+    std::cout << std::endl;
+    std::cout << "Basic number: " << startingPositionForMaxSequence << std::endl;
+    std::cout << "Sequence length: " << maxLength <<std::endl;
+    
+    return 0;
 }
