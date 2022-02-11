@@ -1,0 +1,25 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+    
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+      with:
+          submodules: recursive
+    - name: Checkout submodules
+      run: git submodule update --init --recursive
+    - name: build
+      run: make
+    - name: test
+      run: make test TEST_VALUE=10000000
