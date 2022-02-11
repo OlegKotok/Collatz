@@ -24,14 +24,16 @@ std::mutex mtx;
 
 /*! 
  *  \brief Get length of Collatz sequence
- *  \param [in] n Start number of Collatz sequence
+ *  \param [in] startPosition Start number of Collatz sequence
  *  \param [in] cachedStorage Link to std::map<unsigned long long, int> which storage previously-calculated values, start position and length of sequence for this position
- *  \return std::pair startPositin and length of Collatz sequence for staring point n
+ *  \param [out] maxLength Link to max length, this value will be ipdated if this Collatz sequence logest
+ *  \param [out] startingPositionForMaxSequence Staring position for max length sequence. Ref value
+ *  \return void
  */
-auto Collatz(unsigned long long startPositin, std::unordered_map<unsigned long long, int> &cachedStorage)
+void Collatz(unsigned long long startPosition, std::unordered_map<unsigned long long, int> &cachedStorage, int &maxLength, unsigned long long &startingPositionForMaxSequence)
 {
     int length = 0;
-    auto value = startPositin;
+    auto value = startPosition;
     std::list<unsigned long long> collatzSequence;
 
     /** calculate value if not in cashe */
@@ -65,9 +67,15 @@ auto Collatz(unsigned long long startPositin, std::unordered_map<unsigned long l
         cachedStorage.insert( std::make_pair(currentPosition, currentLength) );
         currentLength--;    
     }
-    mtx.unlock();
 
-    return std::make_pair (startPositin, length);
+    /** update maxLength */
+    if ( length > maxLength ) {
+        maxLength = length;
+        startingPositionForMaxSequence = startPosition;
+
+        std::cout <<"Basic number: " << startPosition << " \t Sequence length: " << maxLength << std::endl;
+    }
+    mtx.unlock();
 }
 
 /*! 
@@ -100,9 +108,7 @@ int main(int argc, char* argv[])
     }
 
     int maxLength = 0;
-    int startingPositionForMaxSequence = 0;
-    int currentStartingPosition = 0;
-    int currentLength = 0;
+    unsigned long long startPositionForMaxLength = 0;
     std::unordered_map<unsigned long long, int> cachedCollatzSequenceStorage;
 
     thread_pool pool; /** Constructs a thread pool with as many threads as available in the hardware. */
@@ -110,52 +116,14 @@ int main(int argc, char* argv[])
 
     while ( startPosition > 0 )
     {
-        futureStorage.push (pool.submit(Collatz, startPosition, std::ref(cachedCollatzSequenceStorage) ) );
+        pool.push_task( Collatz, startPosition, std::ref(cachedCollatzSequenceStorage),  std::ref(maxLength), std::ref(startPositionForMaxLength) );
         startPosition--;
-
-        if (pool.get_tasks_queued() > threadTaskLimit)
-        {
-            /** wating thred-pool finishing. good time to process futureStorage **/
-            while (!futureStorage.empty())
-            {
-                auto p = futureStorage.front().get();
-                currentStartingPosition = p.first;
-                currentLength = p.second;
-                if ( currentLength > maxLength ) {
-                    maxLength = currentLength;
-                    startingPositionForMaxSequence = currentStartingPosition;
-
-                    std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
-                }
-                futureStorage.pop();
-            }
-
-            /** wating thred-pool finishing if don't finished yet **/
-            if (pool.get_tasks_queued() > pool.get_thread_count())
-            {
-                pool.wait_for_tasks();
-            }
-        }
     }
+    
     pool.wait_for_tasks();
-
-    // ** find max lenth in sequence ** //
-    while (!futureStorage.empty())
-    {
-        auto p = futureStorage.front().get();
-        currentStartingPosition = p.first;
-        currentLength = p.second;
-        if ( currentLength > maxLength ) {
-            maxLength = currentLength;
-            startingPositionForMaxSequence = currentStartingPosition;
-
-            std::cout <<"Basic number: " << startingPositionForMaxSequence << " \t Sequence length: " << maxLength << std::endl;
-        }
-        futureStorage.pop();
-    }
             
     std::cout << std::endl;
-    std::cout << "Basic number: " << startingPositionForMaxSequence << std::endl;
+    std::cout << "Basic number: " << startPositionForMaxLength << std::endl;
     std::cout << "Sequence length: " << maxLength <<std::endl;
     
     return 0;
