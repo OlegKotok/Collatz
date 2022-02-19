@@ -38,7 +38,10 @@ test-multithreaded:
 test-multithreaded-cpp:
 	time ./$(MULTITHREADED_CPP_OUTPUT) $(TEST_VALUE)
 
-test: test-normal  test-multithreaded test-cpp test-multithreaded-cpp
+test-go:
+	time go run Collatz.go $(TEST_VALUE)
+
+test: test-normal  test-multithreaded test-cpp test-multithreaded-cpp test-go
 
 docs:
 	doxygen doxygen.conf
