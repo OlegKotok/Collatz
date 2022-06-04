@@ -21,5 +21,9 @@ jobs:
       run: git submodule update --init --recursive
     - name: build
       run: make
-    - name: test
-      run: make test-multithreaded TEST_VALUE=10000000
+    - name: sigle-thread-test
+      run: make test-normal
+    - name: multy-thread-test
+      run: make test-mt
+    - name: cpp-ptimization-test
+      run: make test-cpp
