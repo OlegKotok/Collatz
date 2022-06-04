@@ -4,9 +4,9 @@ C_OUTPUT=Collatz_normal
 CPP_OUTPUT=Collatz_cpp
 MULTITHREADED_C_OUTPUT=Collatz_mt
 MULTITHREADED_CPP_OUTPUT=Collatz_mt_cpp
-TEST_VALUE=100000000
+TEST_VALUE=10000000
 
-all: normal mt optimized optimized_mt 
+all: normal mt cpp cpp-mt 
 
 normal:
 	gcc -O3 -Wall Collatz.c -o $(C_OUTPUT)
@@ -14,10 +14,10 @@ normal:
 mt:
 	gcc -O3 -Wall Collatz_MT.c -o $(MULTITHREADED_C_OUTPUT) -lpthread
 
-optimized:
+cpp:
 	$(COMPILER) -std=c++2a -O3 -Wall Collatz.cpp -o $(CPP_OUTPUT)
 
-optimized_mt:
+cpp-mt:
 	$(COMPILER) -std=c++2a -O3 -Wall -I$(INCLUDE) Collatz_MT.cpp -o $(MULTITHREADED_CPP_OUTPUT) -lpthread
 
 clean:
@@ -41,7 +41,7 @@ test-cpp-mt:
 test-go:
 	time go run Collatz.go $(TEST_VALUE)
 
-test: test-normal  test-mt test-cpp test-cpp-mt test-go
+test: test-normal  test-mt test-cpp test-go
 
 docs:
 	doxygen doxygen.conf
