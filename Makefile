@@ -1,17 +1,17 @@
 COMPILER=g++
 INCLUDE=thread-pool
-C_OUTPUT=Collatz1
-CPP_OUTPUT=Collatz2
-MULTITHREADED_C_OUTPUT=Collatz3
-MULTITHREADED_CPP_OUTPUT=Collatz4
-TEST_VALUE=10000000
+C_OUTPUT=Collatz_normal
+CPP_OUTPUT=Collatz_cpp
+MULTITHREADED_C_OUTPUT=Collatz_mt
+MULTITHREADED_CPP_OUTPUT=Collatz_mt_cpp
+TEST_VALUE=100000000
 
-all: normal multithreaded optimized optimized_mt 
+all: normal mt optimized optimized_mt 
 
 normal:
 	gcc -O3 -Wall Collatz.c -o $(C_OUTPUT)
 
-multithreaded:
+mt:
 	gcc -O3 -Wall Collatz_MT.c -o $(MULTITHREADED_C_OUTPUT) -lpthread
 
 optimized:
@@ -32,16 +32,16 @@ test-normal:
 test-cpp:
 	time ./$(CPP_OUTPUT) $(TEST_VALUE)
 
-test-multithreaded:
+test-mt:
 	time ./$(MULTITHREADED_C_OUTPUT) $(TEST_VALUE)
 
-test-multithreaded-cpp:
+test-cpp-mt:
 	time ./$(MULTITHREADED_CPP_OUTPUT) $(TEST_VALUE)
 
 test-go:
 	time go run Collatz.go $(TEST_VALUE)
 
-test: test-normal  test-multithreaded test-cpp test-multithreaded-cpp test-go
+test: test-normal  test-mt test-cpp test-cpp-mt test-go
 
 docs:
 	doxygen doxygen.conf

@@ -10,7 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#define THREAD_COUNT 4
+#define THREAD_COUNT 8
+#define STEP_SIZE 2000
+#define DEBUG 1
 
 pthread_mutex_t mutex;
 
@@ -58,21 +60,39 @@ void* updateMaxCollatzSequence(void *args)
     while ( p->currentstartPosition > 0 )
     {
         pthread_mutex_lock(&mutex);
-        const int startPosition = p->currentstartPosition--;
+        //update start position for next thread
+        int startPosition = p->currentstartPosition;
+        int endPosition = p->currentstartPosition - STEP_SIZE;
+        if (endPosition < 0) endPosition = 0;
+        p->currentstartPosition = endPosition;
         pthread_mutex_unlock(&mutex);
 
-        int currentLength = Collatz(startPosition);
+        //arrays to store bufer data
+        int position[STEP_SIZE];
+        int len[STEP_SIZE];
+        int index = 0;
 
-        if ( currentLength > p->maxLength )
+        //fill array - calculation
+        while (index < STEP_SIZE && startPosition > endPosition) {
+            position[index] = startPosition;
+            len[index] = Collatz(startPosition);
+            index++;
+            startPosition--;
+        } // index - length of the array
+
+        //update max Collatz Sequence
+        pthread_mutex_lock(&mutex);
+        for (int i = 0; i < index; i++)
         {
-            pthread_mutex_lock(&mutex);
-            p->maxLength = currentLength;
-            p->startingPositionForMaxSequence = startPosition;
+            if ( len[i] > p->maxLength )
+            {
+                p->maxLength = len[i];
+                p->startingPositionForMaxSequence = position[i];
 
-            printf("Basic number: %u \t Sequence length: %u \n", p->startingPositionForMaxSequence, p->maxLength);
-            pthread_mutex_unlock(&mutex);
-
+                if (DEBUG) printf("Basic number: %u \t Sequence length: %u \n", p->startingPositionForMaxSequence, p->maxLength);
+            }
         }
+        pthread_mutex_unlock(&mutex);
     }
     return 0;
 }
@@ -88,7 +108,7 @@ void* updateMaxCollatzSequence(void *args)
  */
 int main(int argc, char* argv[])
 {
-    printf("C-style multi-threaded optimization\n\n");
+    printf("C-style multi-threaded optimization\nSolution with mutex\n\n");
     
     if (argc == 1)
     {
@@ -128,6 +148,6 @@ int main(int argc, char* argv[])
     }
     pthread_mutex_destroy(&mutex);
 
-    printf("\nBasic number: %u \t Sequence length: %u \n", s.startingPositionForMaxSequence, s.maxLength);
+    printf("\nBasic number: %u \t Sequence length: %u \n\n", s.startingPositionForMaxSequence, s.maxLength);
     return 0;
 }
